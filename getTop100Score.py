@@ -15,6 +15,7 @@ from selenium import webdriver
 
 SERVICE_ARGS = ["--load-images=false"]
 que = Queue()
+lock = threading.Lock()
 
 with open("Top100.json", 'r', encoding='utf-8') as file:
     lis = file.readlines()
@@ -22,11 +23,11 @@ for li in lis:
     que.put(json.loads(li, encoding='utf-8'))
 
 
-def store(queobject):
+def store(queobject, lockObject):
     """
     从队列中get一个url ->提取片名和评分-> 保存到json
     """
-    if not queobject.empty():
+    while not queobject.empty():
         url = queobject.get()
         browser = webdriver.PhantomJS(service_args=SERVICE_ARGS)
         browser.get(url)
@@ -43,21 +44,17 @@ def store(queobject):
             # print("Performer: {0}".format(content.get("performer")))
             lines.append(json.dumps(content, ensure_ascii=False) + '\n')
         browser.quit()
-        lock = threading.Lock()
-        lock.acquire()
-        with open("top100NameAndScore.json", 'a', encoding='utf-8') as file:
-            file.writelines(lines)
-        lock.release()
-    else:
-        pass
+        lockObject.acquire()
+        with open("top100NameAndScore.json", 'a', encoding='utf-8') as file2:
+            file2.writelines(lines)
+        lockObject.release()
 
-for i in range(0, 10, 2):
-    thList = list()
-    for j in (i, i + 2, 1):
-        thList.append(threading.Thread(target=store, args=(que,)))
-    for th in thList:
-        th.start()
-    for th in thList:
-        th.join()
+thList = list()
+for j in range(2):
+    thList.append(threading.Thread(target=store, args=(que, lock)))
+for th in thList:
+    th.start()
+for th in thList:
+    th.join()
 
 print("Done.")
