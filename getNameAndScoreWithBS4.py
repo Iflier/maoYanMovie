@@ -26,10 +26,13 @@ for li in lines:
 print("Read file finished, got {0} urls".format(que.qsize()))
 
 url = json.loads(que.get(), encoding='utf-8')
-print(repr(url))
 resp = requests.get(url, headers=headers)
+resp.encoding = 'utf-8'
 print(resp.url)
 print("Response ok? {0}".format(resp.ok))
 soup = BeautifulSoup(resp.text, 'lxml')
 dl = soup.select("#app > div > div.movies-panel > div.movies-list > dl")
-print("Length {}".format(len(dl)))
+for dd in dl:
+    print(dd.select("div.channel-detail.movie-item-title"))
+    print(dd.select("div.channel-detail.channel-detail-orange")[0].string)
+print("Length {}".format(len(dd)))
